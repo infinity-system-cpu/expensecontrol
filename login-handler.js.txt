@@ -1,0 +1,173 @@
+// login-handler.js - VERSIÓN CON DEBUGGING COMPLETO
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('📝 Inicializando Login Handler...');
+    
+    // Cargar último usuario si existe
+    cargarUltimoUsuario();
+    
+    // Manejar envío del formulario de LOGIN
+    const loginForm = document.getElementById('login-form');
+    if (loginForm) {
+        loginForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            console.log('🔄 Formulario enviado...');
+            
+            // Obtener datos DIRECTAMENTE de los campos del formulario
+            const usuario = document.getElementById('login-usuario').value.trim();
+            const password = document.getElementById('login-password').value;
+            
+            console.log('👤 Datos del formulario:', { usuario, password });
+            
+            // Validar campos
+            if (!usuario || !password) {
+                mostrarMensaje('❌ Por favor completa todos los campos', 'error');
+                return;
+            }
+            
+            // Mostrar loading
+            const submitBtn = this.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '⏳ Verificando...';
+            submitBtn.disabled = true;
+            
+            console.log('🔄 Botón deshabilitado, mostrando loading...');
+            
+            try {
+                // Verificar que authManager existe
+                if (!window.authManager) {
+                    throw new Error('authManager no está disponible');
+                }
+                
+                console.log('🔐 Llamando authManager.login...');
+                
+                // Intentar login con los datos ingresados
+                const result = await authManager.login(usuario, password);
+                
+                console.log('📋 Resultado del login:', result);
+                
+                if (result.success) {
+                    // Guardar último usuario
+                    guardarUltimoUsuario(usuario);
+                    mostrarMensaje('✅ ¡Bienvenido!', 'success');
+                    console.log('🎉 Login exitoso, redirigiendo...');
+                    
+                    // El cambio de interfaz se maneja en authManager.onLoginSuccess
+                } else {
+                    console.log('❌ Login fallido:', result.error);
+                    mostrarMensaje(`❌ ${result.error}`, 'error');
+                    // Restaurar botón
+                    submitBtn.innerHTML = originalText;
+                    submitBtn.disabled = false;
+                }
+            } catch (error) {
+                console.error('💥 Error capturado en login-handler:', error);
+                console.error('💥 Stack trace:', error.stack);
+                mostrarMensaje('❌ Error inesperado: ' + error.message, 'error');
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            }
+        });
+    } else {
+        console.error('❌ No se encontró el formulario de login');
+    }
+
+    // Auto-enfocar el campo de usuario al cargar
+    const usuarioField = document.getElementById('login-usuario');
+    if (usuarioField) {
+        setTimeout(() => usuarioField.focus(), 100);
+    } else {
+        console.error('❌ No se encontró el campo de usuario');
+    }
+});
+
+// Función para guardar último usuario
+function guardarUltimoUsuario(usuario) {
+    try {
+        localStorage.setItem('lastUsuario', usuario);
+        console.log('💾 Usuario guardado en localStorage:', usuario);
+    } catch (error) {
+        console.log('No se pudo guardar el usuario');
+    }
+}
+
+// Función para cargar último usuario
+function cargarUltimoUsuario() {
+    try {
+        const lastUsuario = localStorage.getItem('lastUsuario');
+        if (lastUsuario) {
+            const usuarioField = document.getElementById('login-usuario');
+            if (usuarioField) {
+                usuarioField.value = lastUsuario;
+                console.log('📝 Último usuario cargado:', lastUsuario);
+                // Enfocar el campo de contraseña después de cargar usuario
+                setTimeout(() => {
+                    const passwordField = document.getElementById('login-password');
+                    if (passwordField) passwordField.focus();
+                }, 100);
+            }
+        }
+    } catch (error) {
+        console.log('No se pudieron cargar datos guardados');
+    }
+}
+
+// Función para mostrar mensajes
+function mostrarMensaje(mensaje, tipo) {
+    console.log('💬 Mostrando mensaje:', { mensaje, tipo });
+    
+    // Remover mensajes anteriores
+    const existingMessages = document.querySelectorAll('.login-message');
+    existingMessages.forEach(msg => {
+        console.log('🗑️ Eliminando mensaje anterior');
+        msg.remove();
+    });
+    
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `login-message ${tipo}`;
+    messageDiv.innerHTML = `
+        <span>${mensaje}</span>
+        <button onclick="this.parentElement.remove()" class="close-message">×</button>
+    `;
+    
+    messageDiv.style.cssText = `
+        background: ${tipo === 'success' ? '#4CAF50' : '#f44336'};
+        color: white;
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+        margin: 1rem 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        animation: slideIn 0.3s ease;
+    `;
+    
+    // Agregar estilos para el botón de cerrar
+    const closeBtn = messageDiv.querySelector('.close-message');
+    closeBtn.style.cssText = `
+        background: none;
+        border: none;
+        color: white;
+        font-size: 1.2rem;
+        cursor: pointer;
+        padding: 0;
+        margin-left: 1rem;
+    `;
+    
+    // Insertar después del header
+    const loginCard = document.querySelector('.login-card');
+    const loginHeader = document.querySelector('.login-header');
+    if (loginCard && loginHeader) {
+        loginCard.insertBefore(messageDiv, loginHeader.nextSibling);
+        console.log('✅ Mensaje insertado en el DOM');
+    } else {
+        console.error('❌ No se pudo insertar el mensaje - elementos no encontrados');
+    }
+    
+    // Auto-remover después de 5 segundos
+    setTimeout(() => {
+        if (messageDiv.parentElement) {
+            messageDiv.remove();
+            console.log('🕒 Mensaje auto-eliminado');
+        }
+    }, 5000);
+}

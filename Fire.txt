@@ -1,0 +1,77 @@
+users/users/user/user1
+users/users/user/user2
+
+users (colección)
+{
+  nombre: "string",
+  usuario: "string",
+  password: "string",
+  configuracion: {
+    moneda: "string (default: MXN)",
+    tema: "string (light/dark)",
+    notificaciones: "boolean"
+    
+  }
+}
+
+gastos (subcolección de users)
+{
+  gastoId: "string (auto-generado)",
+  descripcion: "string",
+  monto: "number",
+  categoria: "string",
+  metodoPago: "string (efectivo/debito/credito)",
+  tarjeta: "string (opcional)",
+  fecha: "timestamp",
+  etiquetas: "array",
+  createdAt: "timestamp",
+  updatedAt: "timestamp"
+}
+
+categorias (subcolección de users)
+{
+  categoriaId: "string (auto-generado)",
+  nombre: "string",
+  color: "string",
+  icono: "string",
+  activa: "boolean",
+  incluirResumen: "boolean",
+  mostrarGraficos: "boolean",
+  fechaCreacion: "timestamp"
+}
+
+tarjetas (subcolección de users)
+{
+  tarjetaId: "string (auto-generado)",
+  nombre: "string",
+  tipo: "string (credito/debito)",
+  activa: "boolean",
+  fechaCreacion: "timestamp"
+}
+
+presupuestos (subcolección de users)
+{
+  presupuestoId: "string (auto-generado)",
+  mes: "number",
+  anio: "number",
+  monto: "number",
+  alertas: {
+    al80: "boolean",
+    al100: "boolean",
+    al110: "boolean"
+  },
+  createdAt: "timestamp"
+}
+
+tareas (subcolección de users)
+{
+  tareaId: "string (auto-generado)",
+  descripcion: "string",
+  estado: "string (pendiente/en-progreso/completada/cancelada)",
+  fechaInicio: "timestamp",
+  fechaFin: "timestamp (opcional)",
+  costo: "number (opcional)",
+  notas: "string (opcional)",
+  createdAt: "timestamp"
+}
+

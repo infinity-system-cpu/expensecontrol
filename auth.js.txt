@@ -1,0 +1,175 @@
+// auth.js - VERSIÓN 100% FUNCIONAL (SIN LOOP INFINITO)
+class AuthManager {
+    constructor() {
+        this.usuarioActual = null;
+        this.maxIntentos = 20;   // máximo 10 segundos de reintentos
+        this.intentos = 0;
+
+        // Esperar a que el DOM esté completamente cargado
+        document.addEventListener('DOMContentLoaded', () => {
+            this.init();
+        });
+    }
+
+    init() {
+        console.log('AuthManager iniciando...');
+
+        this.usuarioActual = this.getUsuarioEnSesion();
+
+        if (this.usuarioActual) {
+            console.log('Usuario ya en sesión:', this.usuarioActual);
+            this.showApp();
+            this.inicializarModulosDespuesDeAuth();
+        } else {
+            console.log('No hay usuario en sesión');
+            this.showLogin();
+        }
+
+        this.setupLoginEvent();
+    }
+
+    setupLoginEvent() {
+        const loginForm = document.getElementById('login-form');
+        const usernameInput = document.getElementById('username');
+        const passwordInput = document.getElementById('password');
+
+        // Si aún no existen los elementos y no hemos superado el límite → reintentar
+        if ((!loginForm || !usernameInput || !passwordInput) && this.intentos < this.maxIntentos) {
+            this.intentos++;
+            console.log(`Elementos del login no encontrados aún. Reintento ${this.intentos}/${this.maxIntentos}...`);
+            setTimeout(() => this.setupLoginEvent(), 500);
+            return;
+        }
+
+        if (!loginForm || !usernameInput || !passwordInput) {
+            console.error('ERROR CRÍTICO: No se encontraron los elementos del formulario de login después de varios intentos');
+            this.showMessage('Error: No se cargó el formulario de login', 'error');
+            return;
+        }
+
+        console.log('¡Elementos del login encontrados! Evento registrado.');
+        loginForm.onsubmit = (e) => {
+            e.preventDefault();
+            this.login();
+        };
+    }
+
+    async login() {
+        const username = document.getElementById('username').value.trim();
+        const password = document.getElementById('password').value;
+
+        if (!username || !password) {
+            this.showMessage('Usuario y contraseña son obligatorios', 'error');
+            return;
+        }
+
+        try {
+            console.log('Buscando usuario en Firebase:', username);
+
+            const snap = await firebaseDb.collection('users')
+                .where('usuario', '==', username)
+                .get();
+
+            if (snap.empty) {
+                this.showMessage('Usuario no encontrado', 'error');
+                return;
+            }
+
+            const doc = snap.docs[0];
+            const data = doc.data();
+
+            if (data.password !== password) {
+                this.showMessage('Contraseña incorrecta', 'error');
+                return;
+            }
+
+            // ¡LOGIN EXITOSO!
+            this.usuarioActual = {
+                id: doc.id,
+                nombre: data.nombre || username,
+                usuario: username
+            };
+
+            localStorage.setItem('userSession', JSON.stringify(this.usuarioActual));
+            this.showMessage(`¡Bienvenido ${this.usuarioActual.nombre}!`, 'success');
+
+            this.showApp();
+            this.inicializarModulosDespuesDeAuth();
+
+        } catch (err) {
+            console.error('Error Firebase:', err);
+            this.showMessage('Error de conexión con la base de datos', 'error');
+        }
+    }
+
+    logout() {
+        this.usuarioActual = null;
+        localStorage.removeItem('userSession');
+        this.showLogin();
+        location.reload();
+    }
+
+    showApp() {
+        document.getElementById('login-container').style.display = 'none';
+        document.getElementById('app-container').style.display = 'flex';
+
+        if (this.usuarioActual) {
+            const nombreEl = document.getElementById('user-name');
+            if (nombreEl) nombreEl.textContent = this.usuarioActual.nombre;
+        }
+
+        const logoutBtn = document.getElementById('logout-btn');
+        if (logoutBtn) logoutBtn.onclick = () => this.logout();
+    }
+
+    showLogin() {
+        document.getElementById('login-container').style.display = 'flex';
+        document.getElementById('app-container').style.display = 'none';
+    }
+
+    getUsuarioEnSesion() {
+        try {
+            const data = localStorage.getItem('userSession');
+            return data ? JSON.parse(data) : null;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    showMessage(msg, type = 'info') {
+        // Borrar mensajes anteriores
+        document.querySelectorAll('.login-message').forEach(m => m.remove());
+
+        const div = document.createElement('div');
+        div.className = `login-message ${type}`;
+        div.innerHTML = `${msg} <button class="close-message">×</button>`;
+        div.style.cssText = `
+            position:fixed;top:20px;left:50%;transform:translateX(-50%);
+            background:${type==='success'?'#4CAF50':'#f44336'};
+            color:white;padding:1rem 2rem;border-radius:8px;z-index:9999;
+            box-shadow:0 4px 20px rgba(0,0,0,0.3);font-size:1.1rem;
+        `;
+        document.body.appendChild(div);
+
+        div.querySelector('.close-message').onclick = () => div.remove();
+        setTimeout(() => div.remove(), 5000);
+    }
+
+    getCurrentUser() { return this.usuarioActual; }
+    getUserId() { return this.usuarioActual ? this.usuarioActual.id : null; }
+
+    inicializarModulosDespuesDeAuth() {
+        console.log('Inicializando todos los módulos...');
+        if (window.gastosApp?.init) window.gastosApp.init();
+
+        if (document.getElementById('dashboard')) new Dashboard();
+        if (document.getElementById('configuracion')) new ConfigManager();
+        if (document.getElementById('presupuestos')) new BudgetManager();
+        if (document.getElementById('tareas')) new TasksManager();
+        if (document.getElementById('graficos')) new ChartsManager();
+        new BackupManager();
+    }
+}
+
+// INICIAR SOLO CUANDO EL DOM ESTÉ LISTO
+new AuthManager();
