@@ -1,0 +1,1252 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Control de Gastos | Dashboard Financiero</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Plotly CDN -->
+    <script src="https://cdn.plot.ly/plotly-3.0.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons@4.29.2/dist/feather.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- Inter Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Contenido del login -->
+    <div id="login-container" class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <h2>Control de Gastos</h2>
+                <p>Gestión financiera profesional</p>
+            </div>
+            <form id="login-form" class="login-form">
+                <div class="form-group">
+                    <label for="usuario">Usuario</label>
+                    <input type="text" id="usuario" required placeholder="Ingresa tu usuario">
+                </div>
+                <div class="form-group">
+                    <label for="password">Contraseña</label>
+                    <input type="password" id="password" required placeholder="Ingresa tu contraseña">
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary btn-full">Iniciar Sesión</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Contenido de la aplicación -->
+    <div id="app-container" class="app-container">
+        <!-- Botón de menú hamburguesa -->
+        <button id="menu-toggle" class="menu-toggle">☰</button>
+
+        <aside class="sidebar" id="sidebar">
+            <div class="user-info">
+                <div class="user-welcome">
+                    <div class="user-avatar">👤</div>
+                    <div class="user-details">
+                        <strong id="user-name">Usuario</strong>
+                        <small>Administrador</small>
+                    </div>
+                </div>
+            </div>
+            <ul class="nav-menu">
+                <a href="#" class="nav-link active" data-section="dashboard">
+                    <i data-feather="home"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="#" class="nav-link" data-section="gastos">
+                    <i data-feather="shopping-cart"></i>
+                    <span>Gastos</span>
+                </a>
+                <a href="#" class="nav-link" data-section="configuracion">
+                    <i data-feather="settings"></i>
+                    <span>Configuración</span>
+                </a>
+                <a href="#" class="nav-link" data-section="presupuestos">
+                    <i data-feather="target"></i>
+                    <span>Presupuestos</span>
+                </a>
+                <a href="#" class="nav-link" data-section="tareas">
+                    <i data-feather="check-square"></i>
+                    <span>Tareas</span>
+                </a>
+                <a href="#" class="nav-link" data-section="graficos">
+                    <i data-feather="trending-up"></i>
+                    <span>Gráficos</span>
+                </a>
+            </ul>
+            
+            <!-- 🔥 NUEVO: Controles de Tema -->
+            <div class="theme-controls">
+                <div class="theme-control-group">
+                    <label class="toggle-label">
+                        <i data-feather="moon"></i>
+                        <span>Modo Oscuro</span>
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="toggle-dark-mode">
+                            <span class="toggle-slider"></span>
+                        </div>
+                    </label>
+                </div>
+                <div class="theme-control-group">
+                    <label class="toggle-label">
+                        <i data-feather="smartphone"></i>
+                        <span>Sistema del Teléfono</span>
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="toggle-system-theme">
+                            <span class="toggle-slider"></span>
+                        </div>
+                    </label>
+                </div>
+            </div>
+            
+            <div class="sidebar-footer">
+                <button id="logout-btn" class="btn btn-danger">Cerrar Sesión</button>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <!-- Dashboard -->
+            <section id="dashboard" class="content-section">
+                <div class="section-header">
+                    <h1>Dashboard Financiero</h1>
+                    <div class="date-filter">
+                        <div class="date-filter-label">Periodo Visualizado</div>
+                        <div class="date-filter-controls">
+                            <select id="dashboard-month" class="filter-select"></select>
+                            <select id="dashboard-year" class="filter-select"></select>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="kpi-grid">
+                    <div class="kpi-card">
+                        <div class="kpi-header">
+                            <h3>Total Gastado</h3>
+                            <span id="total-badge" class="kpi-badge">Mes Actual</span>
+                        </div>
+                        <div class="kpi-value" id="total-gastado">$0.00</div>
+                        <div class="kpi-trend" id="total-trend">→ Estable</div>
+                        <div class="kpi-progress">
+                            <div class="progress-bar">
+                                <div id="budget-progress" class="progress-fill" style="width: 0%;"></div>
+                            </div>
+                            <span id="budget-percentage">0%</span>
+                        </div>
+                    </div>
+                    
+                    <div class="kpi-card">
+                        <div class="kpi-header">
+                            <h3>Presupuesto</h3>
+                            <span class="kpi-badge">Mensual</span>
+                        </div>
+                        <div class="kpi-value" id="total-presupuesto">$0.00</div>
+                        <div class="kpi-trend">Disponible</div>
+                        <div class="kpi-progress">
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: 0%;"></div>
+                            </div>
+                            <span id="budget-available">$0.00</span>
+                        </div>
+                    </div>
+                    
+                    <div class="kpi-card">
+                        <div class="kpi-header">
+                            <h3>Gastos del Mes</h3>
+                            <span class="kpi-badge">Cantidad</span>
+                        </div>
+                        <div class="kpi-value" id="month-count">0</div>
+                        <div class="kpi-trend" id="month-trend">→ Normal</div>
+                    </div>
+                    
+                    <div class="kpi-card">
+                        <div class="kpi-header">
+                            <h3>Promedio Diario</h3>
+                            <span class="kpi-badge">Estimado</span>
+                        </div>
+                        <div class="kpi-value" id="promedio-diario">$0.00</div>
+                        <div class="kpi-trend" id="daily-trend">→ Normal</div>
+                    </div>
+                </div>
+
+                <!-- Tareas pendientes mejoradas -->
+                <div id="tareas-pendientes-dashboard" class="tareas-pendientes-section" style="display: none;">
+                    <h3>📝 Tareas Pendientes</h3>
+                    <ul id="lista-tareas-pendientes" class="tareas-lista"></ul>
+                </div>
+
+                <!-- Resumen de pagos mejorado -->
+                <div class="resumen-pagos-section" id="resumen-pagos-section" style="display: none;">
+                    <h3>💳 Resumen de Métodos de Pago</h3>
+                    <div id="resumen-pagos-detalle" class="resumen-metodo"></div>
+                </div>
+
+                <div class="alertas-container" id="alertas-container"></div>
+                
+                <!-- En la sección dashboard, dentro del charts-grid -->
+                <div class="charts-grid">
+                <!-- Gráficas existentes -->
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h4>📊 Distribución por Categoría</h4>
+                    </div>
+                    <div id="chart-pie" class="chart-container"></div>
+                </div>
+    
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h4>📈 Evolución de Gastos</h4>
+                    </div>
+                    <div id="chart-evolution" class="chart-container"></div>
+                </div>
+    
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h4>🎯 Presupuesto vs Gastado</h4>
+                    </div>
+                    <div id="chart-budget" class="chart-container"></div>
+                </div>
+    
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h4>💳 Métodos de Pago</h4>
+                    </div>
+                    <div id="chart-payment" class="chart-container"></div>
+                </div>
+    
+                <!-- NUEVAS GRÁFICAS -->
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h4>📊 Comparativa Mensual</h4>
+                        <div class="chart-controls-mini">
+                            <select class="mini-select" id="comparativa-range">
+                                <option value="3">3 meses</option>
+                                <option value="6" selected>6 meses</option>
+                                <option value="12">12 meses</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="chart-comparativa-mensual" class="chart-container"></div>
+                </div>
+
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h4>👥 Gastos por Usuario</h4>
+                    </div>
+                    <div id="chart-por-usuario" class="chart-container"></div>
+                </div>
+
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h4>💳 Detalle por Tarjeta</h4>
+                    </div>
+                    <div id="chart-metodos-detallados" class="chart-container"></div>
+                </div>
+
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h4>📈 Evolución Temporal</h4>
+                    </div>
+                    <div id="chart-evolucion" class="chart-container"></div>
+                </div>
+            </div>
+            </section>
+
+            <!-- Sección Gastos con filtros mejorados -->
+            <section id="gastos" class="content-section">
+                <div class="section-header">
+                    <h1>Gestión de Gastos</h1>
+                    <button id="btn-nuevo-gasto" class="btn btn-primary">+ Nuevo Gasto</button>
+                </div>
+                
+                <!-- Panel de filtros colapsable -->
+                <div class="filters-panel collapsed">
+                    <div class="filters-header">
+                        <h3>🔍 Filtrar Datos</h3>
+                        <button class="filters-toggle">▼</button>
+                    </div>
+                    <div class="filter-group">
+                            <label for="filter-usuario">Usuario</label>
+                            <select id="filter-usuario" class="filter-select">
+                            <option value="all">Todos los usuarios</option>
+                            </select>
+                        </div>
+                    <div class="filters-content">
+                        <div class="filter-group">
+                            <label for="filter-month">Mes</label>
+                            <select id="filter-month" class="filter-select">
+                                <option value="all">Todos los meses</option>
+                                <option value="1">Enero</option>
+                                <option value="2">Febrero</option>
+                                <option value="3">Marzo</option>
+                                <option value="4">Abril</option>
+                                <option value="5">Mayo</option>
+                                <option value="6">Junio</option>
+                                <option value="7">Julio</option>
+                                <option value="8">Agosto</option>
+                                <option value="9">Septiembre</option>
+                                <option value="10">Octubre</option>
+                                <option value="11">Noviembre</option>
+                                <option value="12">Diciembre</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label for="filter-year">Año</label>
+                            <select id="filter-year" class="filter-select">
+                                <option value="all">Todos los años</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label for="filter-day">Día</label>
+                            <select id="filter-day" class="filter-select">
+                                <option value="all">Todos los días</option>
+                                <!-- Los días se poblarán automáticamente -->
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label for="filter-category">Categoría</label>
+                            <select id="filter-category" class="filter-select">
+                                <option value="all">Todas las categorías</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label for="filter-payment">Método de Pago</label>
+                            <select id="filter-payment" class="filter-select">
+                                <option value="all">Todos los métodos</option>
+                                <option value="efectivo">💵 Efectivo</option>
+                                <option value="debito">🏦 Débito</option>
+                                <option value="credito">💳 Crédito</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="table-container">
+                    <div class="table-header">
+                        <div class="table-info">
+                            Total: <strong id="gastos-count">0</strong> gastos
+                        </div>
+                        <div class="table-actions">
+                            <button id="btn-exportar-excel" class="btn btn-outline">
+                                📊 Exportar a Excel
+                            </button>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Descripción</th>
+                                    <th>Categoría</th>
+                                    <th>Método de Pago</th>
+                                    <th>Tarjeta</th>
+                                    <th>Usuario</th>
+                                    <th>Meses</th>
+                                    <th>Recibo</th>
+                                    <th>Monto Mensual</th>
+                                    <th>Total</th>
+                                    <th>Saldo Pendiente</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="gastos-body"></tbody>
+                        </table>
+                    </div>
+                    <div class="pagination">
+                        <span>Mostrando 1 - <span id="gastos-count">0</span> de <span id="gastos-count">0</span></span>
+                        <div>
+                            <button class="btn btn-outline">Anterior</button>
+                            <button class="btn btn-outline">Siguiente</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Las demás secciones mantienen la estructura básica -->
+            <!-- Sección Configuración -->
+            <section id="configuracion" class="content-section">
+                <div class="section-header">
+                    <h1>Configuración</h1>
+                </div>
+                
+                <div class="tabs-container">
+                    <div class="tabs-header">
+                        <button class="tab-button active" data-tab="categorias">📁 Categorías</button>
+                        <button class="tab-button" data-tab="tarjetas">💳 Tarjetas</button>
+                        <button class="tab-button" data-tab="usuarios">👥 Usuarios</button>
+                    </div>
+                    
+                    <div class="tab-content active" id="tab-categorias">
+                        <div class="config-actions">
+                            <button id="btn-nueva-categoria" class="btn btn-primary">+ Nueva Categoría</button>
+                        </div>
+                        <div id="lista-categorias" class="config-list"></div>
+                    </div>
+                    
+                    <div class="tab-content" id="tab-tarjetas">
+                        <div class="config-actions">
+                            <button id="btn-nueva-tarjeta" class="btn btn-primary">+ Nueva Tarjeta</button>
+                        </div>
+                        <div id="lista-tarjetas" class="config-list"></div>
+                    </div>
+                    
+                    <div class="tab-content" id="tab-usuarios">
+                        <div class="config-actions">
+                            <button id="btn-nuevo-usuario" class="btn btn-primary">+ Nuevo Usuario</button>
+                        </div>
+                        <div id="lista-usuarios" class="config-list"></div>
+                    </div>
+                </div>
+                
+                <div id="config-stats" class="stats-grid"></div>
+            </section>
+
+            <!-- Sección Presupuestos mejorada -->
+            <section id="presupuestos" class="content-section">
+                <div class="section-header">
+                    <h1>Presupuestos</h1>
+                    <div class="toggle-container">
+                        <label class="toggle-label">
+                            <span>Presupuesto Habilitado:</span>
+                            <div class="toggle-switch">
+                                <input type="checkbox" id="toggle-presupuesto" checked>
+                                <span class="toggle-slider"></span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="presupuesto-info" style="margin-bottom: 1.5rem; padding: 1.25rem; background: var(--bg-secondary); border-radius: var(--radius); border: 1px solid var(--border);">
+                    <strong>Gastado:</strong> <span id="presupuesto-gastado">$0.00</span>
+                </div>
+                
+                <div class="config-actions">
+                    <button id="btn-nuevo-presupuesto" class="btn btn-primary">+ Nuevo Presupuesto</button>
+                </div>
+                
+                <div id="budgets-container"></div>
+            </section>
+
+            <!-- Sección Tareas mejorada -->
+            <section id="tareas" class="content-section">
+                <div class="section-header">
+                    <h1>Gestión de Tareas</h1>
+                    <button id="btn-nueva-tarea" class="btn btn-primary">+ Nueva Tarea</button>
+                </div>
+                
+                <div class="filters-panel">
+                    <div class="filter-group">
+                        <label for="filtro-estado">Estado</label>
+                        <select id="filtro-estado" class="filter-select">
+                            <option value="todas">Todas</option>
+                            <option value="pendiente">Pendientes</option>
+                            <option value="en-progreso">En Progreso</option>
+                            <option value="completada">Completadas</option>
+                            <option value="cancelada">Canceladas</option>
+                        </select>
+                    </div>
+                    <button id="btn-limpiar-filtros-tareas" class="btn btn-outline">Limpiar</button>
+                </div>
+                
+                <div id="tareas-container" class="tasks-container"></div>
+            </section>
+
+            <!-- Sección Gráficos -->
+            <!-- Sección Gráficos - index.html -->
+<section id="graficos" class="content-section">
+    <div class="section-header">
+        <h1>Análisis Gráfico</h1>
+        <div class="chart-controls">
+            <select id="chart-range" class="filter-select">
+                <option value="3">Últimos 3 meses</option>
+                <option value="6">Últimos 6 meses</option>
+                <option value="12" selected>Últimos 12 meses</option>
+                <option value="custom">Personalizado</option>
+            </select>
+            <select id="chart-grouping" class="filter-select">
+                <option value="month">Agrupar por mes</option>
+                <option value="week">Agrupar por semana</option>
+                <option value="day">Agrupar por día</option>
+            </select>
+            <button id="btn-exportar-graficos" class="btn btn-primary">Exportar Todos</button>
+        </div>
+    </div>
+    
+    <div id="custom-range" style="display: none; margin-bottom: 1.5rem;">
+        <div class="filters-panel">
+            <div class="filter-group">
+                <label for="chart-from">Desde</label>
+                <input type="date" id="chart-from" class="filter-select">
+            </div>
+            <div class="filter-group">
+                <label for="chart-to">Hasta</label>
+                <input type="date" id="chart-to" class="filter-select">
+            </div>
+        </div>
+    </div>
+    
+    <div class="charts-grid">
+        <!-- Gráficas existentes -->
+        <div class="chart-card">
+            <div class="chart-header">
+                <h4>📈 Evolución Detallada</h4>
+                <div class="export-buttons">
+                    <button class="btn-icon" data-format="png">PNG</button>
+                    <button class="btn-icon" data-format="svg">SVG</button>
+                    <button class="btn-icon" data-format="pdf">PDF</button>
+                </div>
+            </div>
+            <div id="chart-detailed-evolution" class="chart-container"></div>
+        </div>
+        
+        <div class="chart-card">
+            <div class="chart-header">
+                <h4>💳 Distribución de Pagos</h4>
+                <div class="export-buttons">
+                    <button class="btn-icon" data-format="png">PNG</button>
+                    <button class="btn-icon" data-format="svg">SVG</button>
+                    <button class="btn-icon" data-format="pdf">PDF</button>
+                </div>
+            </div>
+            <div id="chart-payment-methods" class="chart-container"></div>
+        </div>
+        
+        <div class="chart-card">
+            <div class="chart-header">
+                <h4>💰 Tendencia de Ahorro</h4>
+                <div class="export-buttons">
+                    <button class="btn-icon" data-format="png">PNG</button>
+                    <button class="btn-icon" data-format="svg">SVG</button>
+                    <button class="btn-icon" data-format="pdf">PDF</button>
+                </div>
+            </div>
+            <div id="chart-savings-trend" class="chart-container"></div>
+        </div>
+        
+        <div class="chart-card">
+            <div class="chart-header">
+                <h4>🎯 Análisis de Presupuesto</h4>
+                <div class="export-buttons">
+                    <button class="btn-icon" data-format="png">PNG</button>
+                    <button class="btn-icon" data-format="svg">SVG</button>
+                    <button class="btn-icon" data-format="pdf">PDF</button>
+                </div>
+            </div>
+            <div id="chart-budget-analysis" class="chart-container"></div>
+        </div>
+        
+        <!-- NUEVAS GRÁFICAS CON IDs ÚNICOS PARA LA SECCIÓN GRÁFICOS -->
+        <div class="chart-card">
+            <div class="chart-header">
+                <h4>📊 Comparativa Mensual</h4>
+                <div class="export-buttons">
+                    <button class="btn-icon" data-format="png">PNG</button>
+                    <button class="btn-icon" data-format="svg">SVG</button>
+                    <button class="btn-icon" data-format="pdf">PDF</button>
+                </div>
+            </div>
+            <div id="chart-graficos-comparativa" class="chart-container"></div>
+        </div>
+
+        <div class="chart-card">
+            <div class="chart-header">
+                <h4>👥 Gastos por Usuario</h4>
+                <div class="export-buttons">
+                    <button class="btn-icon" data-format="png">PNG</button>
+                    <button class="btn-icon" data-format="svg">SVG</button>
+                    <button class="btn-icon" data-format="pdf">PDF</button>
+                </div>
+            </div>
+            <div id="chart-graficos-usuario" class="chart-container"></div>
+        </div>
+
+        <div class="chart-card">
+            <div class="chart-header">
+                <h4>💳 Detalle por Tarjeta</h4>
+                <div class="export-buttons">
+                    <button class="btn-icon" data-format="png">PNG</button>
+                    <button class="btn-icon" data-format="svg">SVG</button>
+                    <button class="btn-icon" data-format="pdf">PDF</button>
+                </div>
+            </div>
+            <div id="chart-graficos-tarjeta" class="chart-container"></div>
+        </div>
+
+        <div class="chart-card">
+            <div class="chart-header">
+                <h4>📈 Evolución Temporal</h4>
+                <div class="export-buttons">
+                    <button class="btn-icon" data-format="png">PNG</button>
+                    <button class="btn-icon" data-format="svg">SVG</button>
+                    <button class="btn-icon" data-format="pdf">PDF</button>
+                </div>
+            </div>
+            <div id="chart-graficos-evolucion" class="chart-container"></div>
+        </div>
+    </div>
+</section>
+        </main>
+    </div>
+
+    <!-- Modales (mantienen la misma estructura) -->
+    <!-- Modal de Gasto -->
+    <!-- Modal de Gasto ACTUALIZADO -->
+<div id="modal-gasto" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="modal-gasto-title">Nuevo Gasto</h3>
+            <span class="close">&times;</span>
+        </div>
+        <form id="gasto-form" class="modal-form">
+            <div class="modal-form-content"></div>
+            
+            <!-- 🔥 NUEVO: Selector de tipo de gasto -->
+            <div class="form-group">
+                <label for="tipo-gasto">Tipo de Gasto</label>
+                <select id="tipo-gasto" required>
+                    <option value="interno">Gasto Interno</option>
+                    <option value="externo">Gasto Externo</option>
+                </select>
+            </div>
+
+            <!-- 🔥 NUEVO: Selector de usuario (aparece según tipo de gasto) -->
+            <div class="form-group" id="usuario-gasto-container" style="display: none;">
+                <label for="usuario-gasto">Usuario</label>
+                <select id="usuario-gasto">
+                    <option value="">Seleccionar usuario</option>
+                </select>
+            </div>
+
+            <!-- 🔥 NUEVO: Selector de gasto recurrente (aparece cuando hay gastos pendientes) -->
+            <div class="form-group" id="gasto-recurrente-container" style="display: none;">
+                <label for="gasto-recurrente">Seleccionar Gasto Pendiente</label>
+                <select id="gasto-recurrente">
+                    <option value="">Seleccionar un gasto pendiente...</option>
+                </select>
+                <small style="color: var(--text-light); font-size: 0.8rem;">
+                    Si seleccionas un gasto pendiente, se completarán automáticamente los campos
+                </small>
+            </div>
+            <!-- En el modal de gasto, modifica la sección de pago a meses -->
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="pago-meses">¿Pago a Meses?</label>
+                    <select id="pago-meses">
+                        <option value="no">No</option>
+                        <option value="si">Sí</option>
+                    </select>
+                </div>
+                <div class="form-group" id="meses-container" style="display: none;">
+                    <label for="total-meses">Total de Meses</label>
+                    <select id="total-meses">
+                        <option value="3">3 meses</option>
+                        <option value="6">6 meses</option>
+                        <option value="9">9 meses</option>
+                        <option value="12">12 meses</option>
+                        <option value="15">15 meses</option>
+                        <option value="18">18 meses</option>
+                        <option value="24">24 meses</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- 🔥 NUEVO: Campo para monto mensual (aparece cuando es pago a meses) -->
+                <div class="form-group" id="monto-mensual-container" style="display: none;">
+                    <label for="monto-mensual">Monto Mensual ($)</label>
+                    <input type="number" id="monto-mensual" step="0.01" min="0" placeholder="0.00">
+                    <small style="color: var(--text-light); font-size: 0.8rem;">
+                        Este es el monto que pagarás cada mes
+                    </small>
+                </div>
+
+            <!-- 🔥 NUEVO: Campo para monto total (se calcula automáticamente) -->
+                <div class="form-group" id="monto-total-container" style="display: none;">
+                    <label for="monto-total">Total del Producto ($)</label>
+                    <input type="number" id="monto-total" step="0.01" min="0" placeholder="0.00" readonly>
+                    <small style="color: var(--text-light); font-size: 0.8rem;">
+                        Se calcula automáticamente: Monto Mensual × Total de Meses
+                    </small>
+                </div>
+            
+            <!-- 🔥 NUEVO: Mes actual (solo para edición) -->
+            <div class="form-group" id="mes-actual-container" style="display: none;">
+                <label for="mes-actual">Mes Actual del Pago</label>
+                <select id="mes-actual">
+                    <!-- Se poblará dinámicamente -->
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="descripcion">Descripción</label>
+                <input type="text" id="descripcion" required placeholder="Descripción del gasto">
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="monto">Monto</label>
+                    <input type="number" id="monto" step="0.01" min="0" required placeholder="0.00">
+                </div>
+                <div class="form-group">
+                    <label for="fecha">Fecha</label>
+                    <input type="date" id="fecha" required>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="categoria">Categoría</label>
+                    <select id="categoria" required></select>
+                </div>
+                <div class="form-group">
+                    <label for="metodo-pago">Método de Pago</label>
+                    <select id="metodo-pago" required>
+                        <option value="efectivo">💵 Efectivo</option>
+                        <option value="debito">🏦 Débito</option>
+                        <option value="credito">💳 Crédito</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="tarjeta-gasto">Tarjeta</label>
+                <select id="tarjeta-gasto">
+                    <option value="">Seleccionar tarjeta</option>
+                </select>
+            </div>            
+            <div class="form-actions">
+                <button type="button" class="btn btn-outline cancel">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Guardar Gasto</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+    <!-- Modal de Tarea -->
+    <div id="modal-tarea" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-tarea-title">Nueva Tarea</h3>
+                <span class="close">&times;</span>
+            </div>
+            <form id="tarea-form" class="modal-form">
+                <div class="form-group">
+                    <label for="tarea-descripcion">Descripción</label>
+                    <input type="text" id="tarea-descripcion" required placeholder="Descripción de la tarea">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="tarea-estado">Estado</label>
+                        <select id="tarea-estado" required>
+                            <option value="pendiente">Pendiente</option>
+                            <option value="en-progreso">En Progreso</option>
+                            <option value="completada">Completada</option>
+                            <option value="cancelada">Cancelada</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="tarea-costo">Costo Estimado ($)</label>
+                        <input type="number" id="tarea-costo" step="0.01" min="0" placeholder="0.00">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="tarea-fecha-inicio">Fecha Inicio</label>
+                        <input type="date" id="tarea-fecha-inicio" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="tarea-fecha-fin">Fecha Fin (Opcional)</label>
+                        <input type="date" id="tarea-fecha-fin">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="tarea-notas">Notas</label>
+                    <textarea id="tarea-notas" rows="3" placeholder="Notas adicionales..."></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-outline cancel">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar Tarea</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal de Categoría -->
+    <div id="modal-categoria" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-categoria-title">Nueva Categoría</h3>
+                <span class="close">&times;</span>
+            </div>
+            <form id="categoria-form" class="modal-form">
+                <div class="form-group">
+                    <label for="categoria-nombre">Nombre</label>
+                    <input type="text" id="categoria-nombre" required placeholder="Nombre de la categoría">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="categoria-color">Color</label>
+                        <input type="color" id="categoria-color" value="#4361ee">
+                    </div>
+                    <div class="form-group">
+                        <label for="categoria-icono">Icono</label>
+                        <input type="text" id="categoria-icono" placeholder="🍕" value="📁">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label><input type="checkbox" id="categoria-activa" checked> Activa</label>
+                    </div>
+                    <div class="form-group">
+                        <label><input type="checkbox" id="categoria-incluir-resumen" checked> Incluir en Resumen</label>
+                    </div>
+                    <div class="form-group">
+                        <label><input type="checkbox" id="categoria-mostrar-graficos" checked> Mostrar en Gráficos</label>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-outline cancel">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar Categoría</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal de Tarjeta -->
+    <div id="modal-tarjeta" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-tarjeta-title">Nueva Tarjeta</h3>
+                <span class="close">&times;</span>
+            </div>
+            <form id="tarjeta-form" class="modal-form">
+                <div class="form-group">
+                    <label for="tarjeta-nombre">Nombre</label>
+                    <input type="text" id="tarjeta-nombre" required placeholder="Nombre de la tarjeta">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="tarjeta-tipo">Tipo</label>
+                        <select id="tarjeta-tipo" required>
+                            <option value="credito">Crédito</option>
+                            <option value="debito">Débito</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label><input type="checkbox" id="tarjeta-activa" checked> Activa</label>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-outline cancel">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar Tarjeta</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal de Usuario - ACTUALIZADO -->
+<!-- Modal de Usuario ACTUALIZADO -->
+<!-- Modal de Usuario ACTUALIZADO -->
+<div id="modal-usuario" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="modal-usuario-title">Nuevo Usuario</h3>
+            <span class="close">&times;</span>
+        </div>
+        <form id="usuario-form" class="modal-form">
+            <input type="hidden" id="usuario-id">
+            
+            <div class="form-group">
+                <label for="tipo-usuario">Tipo de Usuario</label>
+                <select id="tipo-usuario" required>
+                    <option value="usuario">Usuario</option>
+                    <option value="persona">Persona</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="usuario-nombre">Nombre Completo</label>
+                    <input type="text" id="usuario-nombre" required placeholder="Nombre del usuario/persona">
+                </div>
+            
+            <!-- 🔥 MEJORADO: Campos condicionales para Usuario -->
+            <div id="campos-usuario" style="display: none;">
+                <div class="form-group">
+                    <label for="usuario-usuario">Usuario</label>
+                    <input type="text" id="usuario-usuario" placeholder="Nombre de usuario para login">
+                </div>
+                <div class="form-group">
+                    <label for="usuario-password">Contraseña</label>
+                    <input type="password" id="usuario-password" placeholder="Contraseña para login">
+                    <small style="color: var(--text-light); font-size: 0.8rem;">
+                        Para nuevos usuarios, la contraseña es obligatoria
+                    </small>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label><input type="checkbox" id="usuario-activo" checked> Activo</label>
+            </div>
+            <div class="form-actions">
+                <button type="button" class="btn btn-outline cancel">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Guardar Usuario</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+    <!-- Modal de Presupuesto -->
+    <div id="modal-presupuesto" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-presupuesto-title">Nuevo Presupuesto</h3>
+                <span class="close">&times;</span>
+            </div>
+            <form id="presupuesto-form" class="modal-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="presupuesto-mes">Mes</label>
+                        <select id="presupuesto-mes"></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="presupuesto-anio">Año</label>
+                        <select id="presupuesto-anio"></select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="presupuesto-monto">Monto Presupuestado ($)</label>
+                    <input type="number" id="presupuesto-monto" step="0.01" min="0" required placeholder="0.00">
+                </div>
+                <div class="form-group">
+                    <label>Alertas</label>
+                    <div style="display: flex; gap: 1.5rem; flex-wrap: wrap;">
+                        <label><input type="checkbox" id="alerta-80"> Al 80%</label>
+                        <label><input type="checkbox" id="alerta-100"> Al 100%</label>
+                        <label><input type="checkbox" id="alerta-110"> Al 110%</label>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-outline cancel">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar Presupuesto</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    <script src="app.js"></script>
+    <script src="dashboard.js"></script>
+    <script src="config.js"></script>
+    <script src="budget.js"></script>
+    <script src="tasks.js"></script>
+    <script src="backup.js"></script>
+    <script src="charts.js"></script>
+    <script src="backup.js"></script>
+    <script src="pwa.js"></script>
+    <script src="charts-lazy.js"></script>
+
+    
+    <!-- 🔥 NUEVO: Agregar el archivo de tema -->
+    <script src="theme.js"></script>
+    
+    <script>
+        feather.replace();
+
+        // Menú hamburguesa mejorado
+        document.addEventListener('DOMContentLoaded', () => {
+            const menuToggle = document.getElementById('menu-toggle');
+            const sidebar = document.getElementById('sidebar');
+            
+            if (menuToggle) {
+                menuToggle.addEventListener('click', () => {
+                    sidebar.classList.toggle('active');
+                });
+            }
+            
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.addEventListener('click', () => {
+                    if (window.innerWidth <= 768) {
+                        sidebar.classList.remove('active');
+                    }
+                });
+            });
+
+            // Inicializar nuevos managers
+            if (typeof BackupManager !== 'undefined') {
+                window.backupManager = new BackupManager();
+            }
+        
+            if (typeof PWAManager !== 'undefined') {
+                window.pwaManager = new PWAManager();
+            }
+        
+            if (typeof LazyChartsManager !== 'undefined') {
+                window.lazyChartsManager = new LazyChartsManager();
+            }
+        
+            // Configurar Service Worker para PWA
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', () => {
+                    navigator.serviceWorker.register('/service-worker.js');
+                });
+            }
+            
+            // Filtros colapsables
+            const filtersToggle = document.querySelector('.filters-toggle');
+            const filtersPanel = document.querySelector('.filters-panel');
+            
+            if (filtersToggle && filtersPanel) {
+                filtersToggle.addEventListener('click', () => {
+                    filtersPanel.classList.toggle('collapsed');
+                    filtersToggle.classList.toggle('rotated');
+                });
+            }
+            
+            // 🔥 NUEVO: Inicializar el gestor de temas
+            if (typeof ThemeManager !== 'undefined') {
+                window.themeManager = new ThemeManager();
+            }
+        });
+
+        // Toast y login existentes sin cambios
+        function toast(msg, success = false) {
+            const div = document.createElement('div');
+            div.textContent = msg;
+            div.style.cssText = `
+                position:fixed;top:20px;left:50%;transform:translateX(-50%);
+                background:${success ? '#28a745' : '#dc3545'};color:white;
+                padding:15px 30px;border-radius:8px;z-index:99999;
+                box-shadow:0 4px 20px rgba(0,0,0,0.4);font-size:1.1em;
+            `;
+            document.body.appendChild(div);
+            setTimeout(() => div.remove(), 4000);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const check = setInterval(() => {
+                if (typeof firebaseDb !== 'undefined') {
+                    clearInterval(check);
+                    initApp();
+                }
+            }, 100);
+        });
+
+        function initApp() {
+            window.authManager = {
+                getUserId: () => {
+                    try {
+                        const session = localStorage.getItem('userSession');
+                        if (!session) return null;
+                        return JSON.parse(session).id || null;
+                    } catch (e) {
+                        return null;
+                    }
+                }
+            };
+            const saved = localStorage.getItem('userSession');
+            if (saved) {
+                try {
+                    const user = JSON.parse(saved);
+                    enterApp(user);
+                    return;
+                } catch (e) {
+                    localStorage.removeItem('userSession');
+                }
+            }
+            setTimeout(showLogin, 100);
+        }
+
+        function showLogin() {
+            const loginContainer = document.getElementById('login-container');
+            const appContainer = document.getElementById('app-container');
+            if (loginContainer) loginContainer.style.display = 'flex';
+            if (appContainer) appContainer.style.display = 'none';
+            const form = document.getElementById('login-form');
+            if (!form) {
+                setTimeout(showLogin, 200);
+                return;
+            }
+            form.onsubmit = async (e) => {
+                e.preventDefault();
+                const username = document.getElementById('usuario').value.trim();
+                const password = document.getElementById('password').value;
+                if (!username || !password) {
+                    toast('Completa usuario y contraseña');
+                    return;
+                }
+                try {
+                    const users = ['user1', 'user2', 'user3', 'user4', 'user5', 'user6', 'user7', 'user8', 'user9', 'user10'];
+                    let found = null;
+                    for (const userId of users) {
+                        const docRef = firebaseDb.collection(userId).doc('usuario');
+                        const doc = await docRef.get();
+                        if (doc.exists && doc.data().usuario === username && doc.data().password === password) {
+                            found = { id: userId, nombre: doc.data().nombre || username, usuario: username };
+                            break;
+                        }
+                    }
+                    if (!found) {
+                        toast('Usuario o contraseña incorrectos');
+                        return;
+                    }
+                    localStorage.setItem('userSession', JSON.stringify(found));
+                    toast('¡Bienvenido ' + found.nombre + '!', true);
+                    enterApp(found);
+                } catch (err) {
+                    console.error('Error en login:', err);
+                    toast('Error de conexión con la base de datos');
+                }
+            };
+        }
+
+        function enterApp(user) {
+            const loginContainer = document.getElementById('login-container');
+            const appContainer = document.getElementById('app-container');
+            const userNameElement = document.getElementById('user-name');
+            const logoutBtn = document.getElementById('logout-btn');
+            if (loginContainer) loginContainer.style.display = 'none';
+            if (appContainer) appContainer.style.display = 'flex';
+            if (userNameElement) userNameElement.textContent = user.nombre;
+            if (logoutBtn) {
+                logoutBtn.onclick = () => {
+                    localStorage.removeItem('userSession');
+                    location.reload();
+                };
+            }
+            setTimeout(() => {
+                if (typeof Dashboard !== 'undefined') window.dashboard = new Dashboard();
+                if (typeof ConfigManager !== 'undefined') window.configManager = new ConfigManager();
+                if (typeof BudgetManager !== 'undefined') window.budgetManager = new BudgetManager();
+                if (typeof TasksManager !== 'undefined') window.tasksManager = new TasksManager();
+                if (typeof ThemeManager !== 'undefined') window.themeManager = new ThemeManager();
+                if (window.gastosApp?.init) window.gastosApp.init();
+            }, 500);
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const sectionId = this.getAttribute('data-section');
+                    document.querySelectorAll('.content-section').forEach(sec => sec.style.display = 'none');
+                    const target = document.getElementById(sectionId);
+                    if (target) target.style.display = 'block';
+                    document.querySelectorAll('.nav-link').forEach(lnk => lnk.classList.remove('active'));
+                    this.classList.add('active');
+                });
+            });
+            const dashboard = document.getElementById('dashboard');
+            if (dashboard) dashboard.style.display = 'block';
+            const firstLink = document.querySelector('.nav-link');
+            if (firstLink) firstLink.classList.add('active');
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.close, .cancel').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    this.closest('.modal').style.display = 'none';
+                });
+            });
+            document.querySelectorAll('.modal').forEach(modal => {
+                modal.addEventListener('click', function(e) {
+                    if (e.target === this) this.style.display = 'none';
+                });
+            });
+        });
+
+        window.sincronizarAplicacion = function() {
+            if (window.dashboard && typeof window.dashboard.loadDashboardData === 'function') {
+                window.dashboard.loadDashboardData();
+            }
+            if (window.configManager) {
+                window.configManager.actualizarEstadisticas();
+            }
+            if (window.gastosApp && window.authManager?.getUserId()) {
+                window.gastosApp.cargarCategorias(window.authManager.getUserId());
+            }
+        };
+
+        // Manejo mejorado de modales para móviles
+function setupModalEnhancements() {
+    // Función para abrir modal
+    function openModal(modal) {
+        modal.style.display = 'block';
+        document.body.classList.add('modal-open');
+        
+        // Enfocar el primer campo input si existe
+        const firstInput = modal.querySelector('input, select, textarea');
+        if (firstInput && firstInput.type !== 'hidden') {
+            setTimeout(() => {
+                firstInput.focus();
+            }, 300);
+        }
+    }
+    
+    // Función para cerrar modal
+    function closeModal(modal) {
+        modal.style.display = 'none';
+        document.body.classList.remove('modal-open');
+    }
+    
+    // Configurar todos los botones que abren modales
+    document.querySelectorAll('[data-modal]').forEach(button => {
+        button.addEventListener('click', () => {
+            const modalId = button.getAttribute('data-modal');
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                openModal(modal);
+            }
+        });
+    });
+    
+    // Configurar cierre de modales
+    document.querySelectorAll('.modal .close, .modal .cancel').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const modal = e.target.closest('.modal');
+            if (modal) {
+                closeModal(modal);
+            }
+        });
+    });
+    
+    // Cerrar modal al hacer clic fuera
+    document.querySelectorAll('.modal').forEach(modal => {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                closeModal(modal);
+            }
+        });
+    });
+    
+    // Cerrar modal con ESC
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            const openModal = document.querySelector('.modal[style*="display: block"]');
+            if (openModal) {
+                closeModal(openModal);
+            }
+        }
+    });
+    
+    // Prevenir que el modal haga scroll al body
+    document.querySelectorAll('.modal-form').forEach(form => {
+        form.addEventListener('scroll', (e) => {
+            e.stopPropagation();
+        });
+        
+        form.addEventListener('touchmove', (e) => {
+            e.stopPropagation();
+        });
+    });
+}
+
+// Inicializar cuando el DOM esté listo
+document.addEventListener('DOMContentLoaded', setupModalEnhancements);
+
+    </script>
+</body>
+</html>
